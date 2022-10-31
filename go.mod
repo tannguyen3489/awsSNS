@@ -1,10 +1,11 @@
-module awesomeProject
+module awsSNS
 
 go 1.19
 
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.17.10
 	github.com/aws/aws-sdk-go-v2/service/sns v1.18.3
+	github.com/go-resty/resty/v2 v2.7.0
 )
 
 require (
@@ -19,4 +20,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.13.8 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.17.1 // indirect
 	github.com/aws/smithy-go v1.13.4 // indirect
+	github.com/go-redis/redis v6.15.9+incompatible // indirect
+	golang.org/x/net v0.0.0-20211029224645-99673261e6eb // indirect
 )

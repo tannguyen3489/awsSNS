@@ -5,7 +5,12 @@ import (
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sns"
-	"net/http"
+	"github.com/go-redis/redis"
+	"github.com/go-resty/resty/v2"
+	"log"
+	"os"
+	"os/exec"
+	"time"
 )
 
 // SNSPublishAPI defines the interface for the Publish function.
@@ -21,27 +26,95 @@ func PublishMessage(c context.Context, api SNSPublishAPI, input *sns.PublishInpu
 }
 
 const ARNChannel string = "arn:aws:sns:us-east-1:412320870653:arazy"
+const RestartServerCommand string = "/home/ec2-user/deployBE.sh"
 
 func main() {
-	resp, err := http.Get("http://example.com/")
+
+	// setup loge
+	file, err := os.OpenFile("./go.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+
 	if err != nil {
-		fmt.Println("Server Down")
-	} else {
+		log.Fatal(err)
 	}
+	defer file.Close()
+
+	logger := log.New(file, "Arazy Log", log.LstdFlags)
+
+	logger.Println("Start checking...")
+
+	// for testing
+	//notifyWhenServerDown(logger)
+
+	// Create a Resty Client
+	client := resty.New()
+
+	client.SetTimeout(5 * time.Second)
+
+	resp, err := client.R().
+		EnableTrace().
+		Get("http://localhost:8080/checkhealth")
+
+	if err != nil {
+		logger.Println("Server Not Response", err)
+		notifyWhenServerDown(logger)
+	} else {
+		responseTime := resp.Time().Seconds()
+
+		logger.Println("  Time       :", responseTime)
+
+		if responseTime > 3 {
+			notifyWhenServerSlow(logger)
+		}
+	}
+
+	logger.Println("Everything is ok")
+
+	//redisClient := rClient()
+	//pingRedis(redisClient)
+
+	//out, err1 := exec.Command("redis-cli PING").Output()
+	//
+	//if err1 != nil {
+	//	log.Fatal(err)
+	//}
+	//
+	//fmt.Println(string(out))
 
 }
 
-func notifyWhenServerSlow() {
+func rClient() *redis.Client {
+	client := redis.NewClient(&redis.Options{
+		Addr: "localhost:6379",
+	})
+
+	return client
+}
+
+func pingRedis(client *redis.Client) (string, error) {
+	pong, err := client.Ping().Result()
+	if err != nil {
+		return "", err
+	}
+	fmt.Println(pong, err)
+	return pong, err
+}
+
+func notifyWhenServerSlow(logger *log.Logger) {
 	msg := "Server is slow for now"
 
 	cfg, err := config.LoadDefaultConfig(context.TODO())
+	//
+	//cfg, err := config.LoadDefaultConfig(context.TODO(),
+	//	config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider("awsid", "awssecret", "")),
+	//)
+
 	if err != nil {
 		panic("configuration error, " + err.Error())
 	}
 
 	client := sns.NewFromConfig(cfg)
 
-	subject := "tantest"
+	subject := "The Arazy PreProduction Server Is Slowly Now"
 
 	arnChannel := ARNChannel
 
@@ -52,10 +125,46 @@ func notifyWhenServerSlow() {
 	}
 	result, err := PublishMessage(context.TODO(), client, input)
 	if err != nil {
-		fmt.Println("Got an error publishing the message:")
-		fmt.Println(err)
+		logger.Println("Got an error publishing the message:")
+		logger.Println(err)
 		return
 	}
 
-	fmt.Println("Message ID: " + *result.MessageId)
+	logger.Println("Message ID: " + *result.MessageId)
+}
+
+func notifyWhenServerDown(logger *log.Logger) {
+
+	logger.Println("exec restart BE command ")
+	cmd := exec.Command("/bin/sh", RestartServerCommand)
+	_, restartBeError := cmd.Output()
+
+	logger.Println("error when exec restart BE command ", restartBeError)
+
+	msg := "Server is down, restarting now."
+
+	cfg, err := config.LoadDefaultConfig(context.TODO())
+	if err != nil {
+		panic("configuration error, " + err.Error())
+	}
+
+	client := sns.NewFromConfig(cfg)
+
+	subject := "The Arazy PreProduction Server is down. Restarting..."
+
+	arnChannel := ARNChannel
+
+	var input = &sns.PublishInput{
+		Subject:  &subject,
+		Message:  &msg,
+		TopicArn: &arnChannel,
+	}
+	result, err := PublishMessage(context.TODO(), client, input)
+	if err != nil {
+		logger.Println("Got an error publishing the message:")
+		logger.Println(err)
+		return
+	}
+
+	logger.Println("Message ID: " + *result.MessageId)
 }

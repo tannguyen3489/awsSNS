@@ -1,0 +1,12 @@
+Arazy Log2022/10/30 23:00:44 Start checking...
+Arazy Log2022/10/30 23:00:49 Server Not Response Get "http://localhost:8080/checkhealth": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+Arazy Log2022/10/30 23:00:49 exec restart BE command 
+Arazy Log2022/10/30 23:00:49 error when exec restart BE command  exit status 127
+Arazy Log2022/10/30 23:00:50 Message ID: 2fc96440-b713-584b-bb7e-3f9816e18b8a
+Arazy Log2022/10/30 23:00:50 Everything is ok
+Arazy Log2022/10/30 23:05:30 Start checking...
+Arazy Log2022/10/30 23:05:35 Server Not Response Get "http://localhost:8080/checkhealth": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+Arazy Log2022/10/30 23:05:35 exec restart BE command 
+Arazy Log2022/10/30 23:05:35 error when exec restart BE command  exit status 127
+Arazy Log2022/10/30 23:05:37 Message ID: 8e8bb3ac-b40a-5a09-a800-e874171acea8
+Arazy Log2022/10/30 23:05:37 Everything is ok

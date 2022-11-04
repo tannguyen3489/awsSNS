@@ -50,13 +50,34 @@ func main() {
 
 	client.SetTimeout(5 * time.Second)
 
+	checkingUrl := "https://arazyprepro.saveondev.com/be/checkhealth"
+
 	resp, err := client.R().
 		EnableTrace().
-		Get("http://localhost:8080/checkhealth")
+		Get(checkingUrl)
 
+	isCantConnect := false
 	if err != nil {
 		logger.Println("Server Not Response", err)
+		resp1, err := client.R().
+			EnableTrace().
+			Get(checkingUrl)
+		resp = resp1
+		if err != nil {
+			resp2, err := client.R().
+				EnableTrace().
+				Get(checkingUrl)
+			resp = resp2
+			if err != nil {
+				isCantConnect = true
+			}
+		}
+	}
+
+	if isCantConnect == true {
+		logger.Println("Server Not Response", err)
 		notifyWhenServerDown(logger)
+
 	} else {
 		responseTime := resp.Time().Seconds()
 
@@ -101,6 +122,7 @@ func pingRedis(client *redis.Client) (string, error) {
 
 func notifyWhenServerSlow(logger *log.Logger) {
 	msg := "Server is slow for now"
+	logger.Println("Server is slow for now")
 
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	//
@@ -134,12 +156,7 @@ func notifyWhenServerSlow(logger *log.Logger) {
 }
 
 func notifyWhenServerDown(logger *log.Logger) {
-
 	logger.Println("exec restart BE command ")
-	cmd := exec.Command("/bin/sh", RestartServerCommand)
-	_, restartBeError := cmd.Output()
-
-	logger.Println("error when exec restart BE command ", restartBeError)
 
 	msg := "Server is down, restarting now."
 
@@ -160,6 +177,12 @@ func notifyWhenServerDown(logger *log.Logger) {
 		TopicArn: &arnChannel,
 	}
 	result, err := PublishMessage(context.TODO(), client, input)
+
+	cmd := exec.Command("/bin/sh", RestartServerCommand)
+	_, restartBeError := cmd.Output()
+
+	logger.Println("error when exec restart BE command ", restartBeError)
+
 	if err != nil {
 		logger.Println("Got an error publishing the message:")
 		logger.Println(err)

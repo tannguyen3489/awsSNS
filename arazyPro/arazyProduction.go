@@ -26,7 +26,7 @@ func PublishMessage(c context.Context, api SNSPublishAPI, input *sns.PublishInpu
 }
 
 const ARNChannel string = "arn:aws:sns:us-east-1:412320870653:arazy"
-const RestartServerCommand string = "sudo /home/ec2-user/deployBE.sh"
+const RestartServerCommand string = "/home/ec2-user/restartBE.sh"
 
 func main() {
 
@@ -178,7 +178,7 @@ func notifyWhenServerDown(logger *log.Logger) {
 	}
 	result, err := PublishMessage(context.TODO(), client, input)
 
-	cmd := exec.Command("/bin/sh", RestartServerCommand)
+	cmd := exec.Command("sudo /bin/sh", RestartServerCommand)
 	_, restartBeError := cmd.Output()
 
 	logger.Println("error when exec restart BE command ", restartBeError)
